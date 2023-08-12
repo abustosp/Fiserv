@@ -2,84 +2,155 @@ import pdfplumber
 import re
 import os
 import pandas as pd
+import openpyxl
+import LIB.formatos as fmt
 
+# Ruta de la carpeta que contiene los archivos PDF
 path = "Muestras"
+
+# Obtener la lista de archivos PDF en la carpeta
 files = os.listdir(path)
 
-# Filtrar las que no son .pdf
+# Filtrar los archivos que no son PDF
 files = [f for f in files if f.endswith(".pdf")]
 
-# Crear la carpeta Resultados si no existe
+# Crear la carpeta "Resultados" si no existe
 if not os.path.exists("Resultados"):
     os.mkdir("Resultados")
 
-for f in files:
 
+# Procesar cada archivo PDF
+for f in files:
+    texto = ""
     # Abrir el archivo PDF
     pdf = pdfplumber.open(os.path.join(path, f))
-
     # Obtener el texto de todas las páginas
     paginas = pdf.pages
-    texto = ""
     for pagina in paginas:
         texto += pagina.extract_text()
 
-    Re_Movimientos = "^([-+])\s+(.*?)(?:\s+\$\s*([\d,\.]+))$"
 
-    Total = "Total presentado: (\d.*)*"
-    Pagos = "Neto de pagos: (\d.*)*"
-
+    # Expresión regular para encontrar movimientos
+    Re_Movimientos = r"^([-+])\s+(.*?)(?:\s+\$ ([\d,\.]+))?$|el día (\d{2}\/\d{2}\/\d{4}) \$ ([\d,\.]+) Nro\. Liq: (\d+)"
     # Encontrar todos los movimientos
     buscar_movimientos = re.findall(Re_Movimientos, texto, re.MULTILINE)
 
+        # Expresiones regulares para encontrar Total y Pagos
+    Total = r"Total presentado: (\d.*)*"
+    Pagos = r"Neto de pagos: (\d.*)*"
     # Encontrar el primer match de Total y Pagos
     buscar_total = re.search(Total, texto)
     buscar_pagos = re.search(Pagos, texto)
+    # transformar el monto a numérico
+    buscar_total = buscar_total.group(1).replace(".", "").replace(",", ".")
+    buscar_pagos = buscar_pagos.group(1).replace(".", "").replace(",", ".")
 
-    # Crear un DataFrame con los movimientos, Total y Pagos
-    df = pd.DataFrame(buscar_movimientos, columns=["Signo", "Concepto", "Monto"])
-
-    # Convertir el monto a numérico (donde el separador de miles es el punto y el decimal la coma)
-    df["Monto"] = df["Monto"].apply(lambda x: float(x.replace(".", "").replace(",", ".")))
+    # transformar los textos de los movimientos a montos numérico de los grupos 3 y 5
+    buscar_movimientos = [list(x) for x in buscar_movimientos]  
+    for i in range(len(buscar_movimientos)):
+        if buscar_movimientos[i][2] != "":
+            buscar_movimientos[i][2] = float(buscar_movimientos[i][2].replace(".", "").replace(",", "."))
+        if buscar_movimientos[i][4] != "":
+            buscar_movimientos[i][4] = float(buscar_movimientos[i][4].replace(".", "").replace(",", "."))
+    
+    # Crear un DataFrame con los grupos de la expresión regular
+    df_movimientos = pd.DataFrame(buscar_movimientos, columns=["Signo", "Concepto", "Monto" , "Fecha", "Importe Neto de Pagos", "Nro. Liq"])
 
     # Multiplicar por -1 los montos negativos
-    df["Monto"] = df.apply(lambda x: x["Monto"] * -1 if x["Signo"] == "-" else x["Monto"], axis=1)
+    df_movimientos["Monto"] = df_movimientos.apply(lambda x: x["Monto"] * -1 if x["Signo"] == "-" else x["Monto"], axis=1)
 
-    # Crear un df de control donde se sumen los movimientos por su signo (+ o -) y se compare con la diferencia entre Total y Pagos
-    df_control = df.groupby("Signo").sum().reset_index()
+    # Reemplazar los "" por NaN
+    df_movimientos = df_movimientos.replace("", float("NaN"))
 
-    # Agregar una fila con el Total y Pagos
-    df_control = df_control.append({"Concepto": "Total", "Monto": buscar_total.group(1)}, ignore_index=True)
-    df_control = df_control.append({"Concepto": "Pagos", "Monto": buscar_pagos.group(1)}, ignore_index=True)
+    # Rellenar las columnas 'Fecha' y 'Importe Neto de Pagos' y 'Nro. Liq' con el valor de la prier fila posterior que no sea NaN
+    df_movimientos["Fecha"] = df_movimientos["Fecha"].bfill()
+    df_movimientos["Importe Neto de Pagos"] = df_movimientos["Importe Neto de Pagos"].bfill()
+    df_movimientos["Nro. Liq"] = df_movimientos["Nro. Liq"].bfill()
 
-    # Agregar una fila de control con la diferencia entre Total y Pagos - la suma de los movimientos
-    df_control = df_control.append({"Concepto": "Diferencia", "Monto": float(buscar_total.group(1)) - float(buscar_pagos.group(1)) - df_control["Monto"].sum()}, ignore_index=True)
+    # Eliminar la fila de signo si es NaN
+    df_movimientos = df_movimientos.dropna(subset=["Signo"])
+
+    # Crear una Tabla dinámica para agrupar los movimientos por concepto y sumar los montos
+    df_TD = df_movimientos.pivot_table(index="Concepto", values="Monto", aggfunc="sum").reset_index()
+
+    # Crear otra tabla dinamica pero que se agrupe por fecha y concepto y se sumen los montos
+    df_TD2 = df_movimientos.pivot_table(index=["Fecha", "Concepto"], values="Monto", aggfunc="sum").reset_index()
+
+    # Crear un DataFrame de control donde se sumen los movimientos por su signo (+ o -) y se compare con la diferencia entre Total y Pagos
+    df_control = df_movimientos.groupby("Signo").sum().reset_index()
+
+    # Eliminar la columna de 'Fecha' , 'Importe Neto de Pagos' y 'Nro. Liq'
+    df_control = df_control.drop(columns=["Fecha", "Importe Neto de Pagos", "Nro. Liq"])
+
+    # Agregar una fila busar_total
+    df_control = pd.concat([df_control, pd.DataFrame({"Signo": [""], "Concepto": ["Total Presentado"], "Monto": [buscar_total]})])
+
+    # Agregar una fila buscar_pagos
+    df_control = pd.concat([df_control, pd.DataFrame({"Signo": [""], "Concepto": ["Neto de Pagos"], "Monto": [buscar_pagos]})])
+
+    # Crear variable con la suma de los movimientos
+    df_control["Monto"] = df_control["Monto"].apply(lambda x: float(x))
+    suma_movimientos = df_control["Monto"].sum()
+
+    # Agregar una fila con la suma de los movimientos de pagos
+    pagos_Control = df_movimientos[df_movimientos["Signo"] == "-"]["Monto"].sum()
+    df_control = pd.concat([df_control, pd.DataFrame({"Signo": [""], "Concepto": ["Pagos"], "Monto": [pagos_Control]})])
+
+    #Calcular la diferencia entre Total y Pagos - la suma de los movimientos que sean negativos
+    diferencia = round ( ((float(buscar_total) - float(buscar_pagos)) + df_movimientos[df_movimientos["Signo"] == "-"]["Monto"].sum()) , 2)
+
+    # Agregar una fila de control con la diferencia
+    df_control = pd.concat([df_control, pd.DataFrame({"Signo": [""], "Concepto": ["Control"], "Monto": [diferencia]})])
+
+    # Cambiar el concepto de las filas que el signo sea + por "Ingresos"
+    df_control.loc[df_control["Signo"] == "+", "Concepto"] = "Ingresos"
+
+    # Cambiar el concepto de las filas que el signo sea - por "Egresos"
+    df_control.loc[df_control["Signo"] == "-", "Concepto"] = "Egresos"
+
+    NombreExportación = f.split(".")[0]
 
     # Exportar a Excel los movimientos y el control
-    with pd.ExcelWriter(f"Resultados/{f}.xlsx") as writer:
-        df.to_excel(writer, sheet_name="Movimientos", index=False)
-        df_control.to_excel(writer, sheet_name="Control", index=False)    
+    with pd.ExcelWriter(f"Resultados/{NombreExportación}.xlsx") as writer:
+        df_movimientos.to_excel(writer, sheet_name="Movimientos", index=False)
+        df_control.to_excel(writer, sheet_name="Control", index=False)
+        df_TD.to_excel(writer, sheet_name="Tabla Dinámica", index=False)
+        df_TD2.to_excel(writer, sheet_name="Tabla Dinámica 2", index=False)
+
+    # Aplicar formatos
+    workbook = openpyxl.load_workbook(f"Resultados/{NombreExportación}.xlsx")
+    h1 = workbook["Movimientos"]
+    h2 = workbook["Control"]
+    h3 = workbook["Tabla Dinámica"]
+    h4 = workbook["Tabla Dinámica 2"]
+
+    fmt.Aplicar_formato_encabezado(h1)
+    fmt.Aplicar_formato_encabezado(h2)
+    fmt.Aplicar_formato_encabezado(h3)
+    fmt.Aplicar_formato_encabezado(h4)
 
 
-        
-    # print(texto)
+    fmt.Aplicar_formato_moneda(h1 , 3 , 3)
+    fmt.Aplicar_formato_moneda(h1 , 5 , 5)
+    
+    fmt.Aplicar_formato_moneda(h2 , 3 , 3)
 
-    print("Total: ", buscar_total.group(1))
-    print("Pagos: ", buscar_pagos.group(1))
-    print("""------------------------------------------------
-        Movimientos:
-        """)
+    fmt.Aplicar_formato_moneda(h3 , 2 , 2)
 
-    for i in buscar_movimientos:
-        print(f"""{i[0]} _ {i[1]} _ {i[2]}""")
+    fmt.Aplicar_formato_moneda(h4 , 3 , 3)
+    
+    
+    fmt.Autoajustar_columnas(h1)
+    fmt.Autoajustar_columnas(h2)
+    fmt.Autoajustar_columnas(h3)
+    fmt.Autoajustar_columnas(h4)
 
-"""
-Explicación del RegEx
-1. `^([-+])` : Esto captura el primer signo (+0 -) al principio de una línea y lo coloca en un
-grupo de captura.
-2. `\s+` : Coincide con uno o más espacios en blanco después del signo.
-3. `(.*?)` : Captura el concepto, que puede contener cualquier cantidad de caracteres, incluso ninguno. El uso de `?` hace que la captura sea no codiciosa.
-(2: t Xd , : Esto captura el monto en dólares ($), que puede contener
-4.`(?:\s+\$\s*([\d,\.]+))$` : Esto captura el monto en dólares ($), que puede contener dígitos, comas y puntos. El uso de `(?: ... )` crea un grupo no capturador para esta parte. `\s+` coincide con uno o más espacios en blanco, `\$\s*` coincide con el símbolo $ y cualquier cantidad de espacios en blanco después, `([\d,\.]+)` captura los dígitos, comas y puntos en el monto, y `$` coincide con el final de la línea.
+    fmt.Agregar_filtros(h1)
+    fmt.Agregar_filtros(h2)
+    fmt.Agregar_filtros(h3)
+    fmt.Agregar_filtros(h4)
 
-"""
+    workbook.save(f"Resultados/{NombreExportación}.xlsx")
+
+
+

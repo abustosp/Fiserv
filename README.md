@@ -52,7 +52,7 @@ Los pasos para ejecutar el Script suele ser el siguiente:
 
 ## Aclaraciones
 
-- La utilización del Progeama/Script Corre bajo la responsabilidad del que lo ejecuta.
+- La utilización del Programa/Script Corre bajo la responsabilidad del que lo ejecuta.
 
 - Si se comparte debe ser de manera GRATUITA, ya que la licencia es bajo PL. También los bots derivados deben seguir la misma licencia gratuita.
 

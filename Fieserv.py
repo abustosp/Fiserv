@@ -173,7 +173,4 @@ for f in files:
 
 # mostrar mensaje de finalización
 Final = time.time()
-showinfo("Finalizado", f"Proceso finalizado con éxito en: {Final - Inicio} Segundos")
-
-
-
+showinfo("Finalizado", f"Se procesaron con éxito {len(files)} archivos en: {Final - Inicio} Segundos.")

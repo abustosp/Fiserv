@@ -169,7 +169,7 @@ for f in files:
     fmt.Agregar_filtros(h3)
     fmt.Agregar_filtros(h4)
 
-    workbook.save(f"Resultados/{NombreExportación}.xlsx")
+    workbook.save(f"{path}/Resultados/{NombreExportación}.xlsx")
 
 # mostrar mensaje de finalización
 Final = time.time()

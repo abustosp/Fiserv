@@ -5,9 +5,14 @@ import pandas as pd
 import openpyxl
 import LIB.formatos as fmt
 import numpy as np
+from tkinter.filedialog import askdirectory
+from tkinter.messagebox import showinfo
+import time
 
 # Ruta de la carpeta que contiene los archivos PDF
-path = "Muestras"
+path = askdirectory(title="Seleccionar carpeta con los archivos PDF")
+
+Inicio = time.time()
 
 # Obtener la lista de archivos PDF en la carpeta
 files = os.listdir(path)
@@ -16,8 +21,8 @@ files = os.listdir(path)
 files = [f for f in files if f.endswith(".pdf")]
 
 # Crear la carpeta "Resultados" si no existe
-if not os.path.exists("Resultados"):
-    os.mkdir("Resultados")
+if not os.path.exists(os.path.join(path, "Resultados")):
+    os.mkdir(os.path.join(path, "Resultados"))
 
 
 # Procesar cada archivo PDF
@@ -125,14 +130,14 @@ for f in files:
     NombreExportación = f.split(".")[0]
 
     # Exportar a Excel los movimientos y el control
-    with pd.ExcelWriter(f"Resultados/{NombreExportación}.xlsx") as writer:
+    with pd.ExcelWriter(f"{path}/Resultados/{NombreExportación}.xlsx") as writer:
         df_movimientos.to_excel(writer, sheet_name="Movimientos", index=False)
         df_control.to_excel(writer, sheet_name="Control", index=False)
         df_TD.to_excel(writer, sheet_name="Tabla Dinámica", index=False)
         df_TD2.to_excel(writer, sheet_name="Tabla Dinámica 2", index=False)
 
     # Aplicar formatos
-    workbook = openpyxl.load_workbook(f"Resultados/{NombreExportación}.xlsx")
+    workbook = openpyxl.load_workbook(f"{path}/Resultados/{NombreExportación}.xlsx")
     h1 = workbook["Movimientos"]
     h2 = workbook["Control"]
     h3 = workbook["Tabla Dinámica"]
@@ -165,6 +170,10 @@ for f in files:
     fmt.Agregar_filtros(h4)
 
     workbook.save(f"Resultados/{NombreExportación}.xlsx")
+
+# mostrar mensaje de finalización
+Final = time.time()
+showinfo("Finalizado", f"Proceso finalizado con éxito en: {Final - Inicio} Segundos")
 
 
 

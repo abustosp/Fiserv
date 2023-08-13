@@ -4,6 +4,7 @@ import os
 import pandas as pd
 import openpyxl
 import LIB.formatos as fmt
+import numpy as np
 
 # Ruta de la carpeta que contiene los archivos PDF
 path = "Muestras"
@@ -29,11 +30,17 @@ for f in files:
     for pagina in paginas:
         texto += pagina.extract_text()
 
+    # # exportar el texto a un archivo TXT
+    # with open(os.path.join("Resultados", f.replace(".pdf", ".txt")), "w", encoding="utf-8") as f_txt:
+    #     f_txt.write(texto)
 
     # Expresión regular para encontrar movimientos
     Re_Movimientos = r"^([-+])\s+(.*?)(?:\s+\$ ([\d,\.]+))?$|el día (\d{2}\/\d{2}\/\d{4}) \$ ([\d,\.]+) Nro\. Liq: (\d+)"
     # Encontrar todos los movimientos
     buscar_movimientos = re.findall(Re_Movimientos, texto, re.MULTILINE)
+
+    # Extraer el CUIT del primer match
+    cuit_empresa = re.search(r"CUIT: (\d{2}-\d{8}-\d{1})", texto).group(1)
 
         # Expresiones regulares para encontrar Total y Pagos
     Total = r"Total presentado: (\d.*)*"
@@ -55,6 +62,10 @@ for f in files:
     
     # Crear un DataFrame con los grupos de la expresión regular
     df_movimientos = pd.DataFrame(buscar_movimientos, columns=["Signo", "Concepto", "Monto" , "Fecha", "Importe Neto de Pagos", "Nro. Liq"])
+
+    # Agregar una columna con el CUIT de la empresa
+    df_movimientos["CUIT"] = cuit_empresa.replace("-", "")
+    df_movimientos["CUIT"] = df_movimientos["CUIT"].astype(np.int64)
 
     # Multiplicar por -1 los montos negativos
     df_movimientos["Monto"] = df_movimientos.apply(lambda x: x["Monto"] * -1 if x["Signo"] == "-" else x["Monto"], axis=1)
@@ -78,6 +89,9 @@ for f in files:
 
     # Crear un DataFrame de control donde se sumen los movimientos por su signo (+ o -) y se compare con la diferencia entre Total y Pagos
     df_control = df_movimientos.groupby("Signo").sum().reset_index()
+
+    # Eliminar la columna CUIT 
+    df_control = df_control.drop(columns=["CUIT"])
 
     # Eliminar la columna de 'Fecha' , 'Importe Neto de Pagos' y 'Nro. Liq'
     df_control = df_control.drop(columns=["Fecha", "Importe Neto de Pagos", "Nro. Liq"])

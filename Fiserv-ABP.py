@@ -3,6 +3,12 @@ import tkinter as tk
 import tkinter.ttk as ttk
 from LIB.Fiserv import Procesar_Fiserv
 
+def Colaboraciones():
+    # Abrir el navegador en "https://cafecito.app/abustos"
+    import os
+    os.system("start https://cafecito.app/abustos")
+
+
 
 class GUI:
     def __init__(self, master=None):
@@ -40,6 +46,11 @@ class GUI:
         self.Seleccionar_carpeta = ttk.Button(Toplevel_1)
         self.Seleccionar_carpeta.configure(text='Seleccionar Carpeta' , command=Procesar_Fiserv)
         self.Seleccionar_carpeta.pack(expand="true", pady=4, side="top")
+
+        self.Colaboraciones = ttk.Button(Toplevel_1)
+        self.Colaboraciones.configure(text='Colaboraciones' , command=Colaboraciones)
+        self.Colaboraciones.pack(expand="true", pady=4, side="top")
+    
 
         # Main widget
         self.mainwindow = Toplevel_1

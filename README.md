@@ -12,9 +12,9 @@ El licenciamiento es bajo PL (es decir que no se puede distribuir comercialmente
 
 Si existe el instalador (.exe) se debe ejecutarlo y seguir los pasos del mismo. La descarga del mismo se puede encontrar en la sección derecha de github, donde dice `Releases`
 
-Si no existe el instalador se debe ejecutar el Script de Python.
+---
 
-Los pasos para ejecutar el Script suele ser el siguiente:
+Si no existe el instalador se debe ejecutar el Script en Python. Los pasos para ejecutar el Script suelen ser el siguiente:
 
 1. Descargarse Python (https://www.python.org/downloads/)
 

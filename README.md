@@ -10,7 +10,9 @@ El licenciamiento es bajo PL (es decir que no se puede distribuir comercialmente
 
 ## Ejecución
 
-Si existe el instalador (.exe) se debe ejecutarlo y seguir los pasos del mismo. Si no existe el instalador se debe ejecutar el Script de Python.
+Si existe el instalador (.exe) se debe ejecutarlo y seguir los pasos del mismo. La descarga del mismo se puede encontrar en la sección derecha de github, donde dice `Releases`
+
+Si no existe el instalador se debe ejecutar el Script de Python.
 
 Los pasos para ejecutar el Script suele ser el siguiente:
 
@@ -81,24 +83,16 @@ Cualquier cosa pueden contactarme en:
 ---
 
 
-<br/>
 
 ## 💰 Acepto donaciones para mantener el proyecto libre y gratuito
-<br/>
 
-[![PayPal](https://img.shields.io/badge/PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://paypal.me/agustinbustosp) <!-- [<img src="http://ketekipo.com.ar/wp-content/uploads/2020/05/mercado-pago.png" alt="Image" height="30" width="100\">](https://paypal.me/paypal.me/agustinbustosp) -->
-
-<!-- [![Cafecito](https://img.shields.io/badge/-Cafecito-9cf?style=for-the-badge)](https://cafecito.app/abustos) -->
-
-<!-- [![Cafecito](https://img.shields.io/badge/-Cafecito-9cf?style=for-the-badge)](https://cafecito.app/abustos) -->
+[![PayPal](https://img.shields.io/badge/PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://paypal.me/agustinbustosp)
 
 [![Invitame un café en cafecito.app](https://cdn.cafecito.app/imgs/buttons/button_5.svg)](https://cafecito.app/abustos)
 
-<br/>
  
 ## 💰 Y También en Pesos Argentinos
 
-<br/>
 
 [![Mercado Pago](https://img.shields.io/badge/Mercado%20Pago%20100-009ee3?style=for-the-badge&logo=mercadopago&logoColor=white)](https://mpago.la/2JBdGez)
 
